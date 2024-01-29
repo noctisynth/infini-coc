@@ -1,0 +1,9 @@
+[infini]
+name = "coc"
+version = "0.1.0-alpha.2"
+description = "Infini COC 规则包"
+license = "MIT"
+
+[requirements]
+
+[dependencies]
