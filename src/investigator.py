@@ -1,4 +1,5 @@
-from diceutils.charactors import Character
+from diceutils.charactors import Character, Template, Attribute, AttributeGroup
+from diceutils.charactors import manager
 
 import random
 
@@ -15,37 +16,60 @@ db_dict = {
     6: "5d6",
 }
 
-
-def randattr(time: int = 3, ex: int = 0):
-    r = 0
-    for _ in range(time):
-        r += random.randint(1, 6)
-    return (r + ex) * 5
+attributes = [
+    AttributeGroup(
+        "meta",
+        "元属性",
+        [
+            Attribute(
+                "name",
+                str,
+                ["姓名", "名字", "名称"],
+            ),
+            Attribute("sex", str, ["性别"]),
+            Attribute("age", int, ["年龄"]),
+        ],
+    ),
+    AttributeGroup(
+        "basic",
+        "基础属性",
+        [
+            Attribute("str", int, ["力量", "攻击", "攻击力"]),
+            Attribute("con", int, ["体质"]),
+            Attribute("siz", int, ["体型"]),
+            Attribute("dex", int, ["敏捷"]),
+            Attribute("app", int, ["外貌"]),
+            Attribute("int", int, ["智力", "灵感"]),
+            Attribute("pow", int, ["意志", "精神"]),
+            Attribute("edu", int, ["教育"]),
+            Attribute("luc", int, ["幸运", "命运"]),
+            Attribute("san", int, ["理智", "精神状态", "san值"]),
+            Attribute("hp", int, ["生命"]),
+            Attribute("mhp", int, ["生命上限", "最大生命"]),
+        ],
+    ),
+]
+manager.add_template("coc", attributes)
 
 
 class Investigator(Character):
-    """COC 调查员人物卡"""
-
     def __init__(self) -> None:
-        self.name = "无名调查员"
-        self.age = 20
-        self.sex = "女"
-        self.str = randattr()
-        self.con = randattr()
-        self.siz = randattr(2, 6)
-        self.dex = randattr()
-        self.app = randattr()
-        self.int = randattr(2, 6)
-        self.pow = randattr()
-        self.edu = randattr(2, 6)
-        self.luc = randattr()
-        self.san = self.pow
-        self.hp = self.lp_max()
-        self.skills = {}
-        self.tools = {}
-
-    def init(self):
-        pass
+        super().__init__(Template("coc", attributes))
+        self.set("name", "无名调查员")
+        self.set("age", 20)
+        self.set("sex", "女")
+        self.set("str", "3d6*5")
+        self.set("con", "3d6*5")
+        self.set("siz", "(2d6+6)*5")
+        self.set("dex", "3d6*5")
+        self.set("app", "3d6*5")
+        self.set("int", "(2d6+6)*5")
+        self.set("pow", "3d6*5")
+        self.set("edu", "(2d6+6)*5")
+        self.set("luc", "3d6*5")
+        self.set("san", self.get("pow"))
+        self.set("hp", (self.get("con") + self.get("siz")) // 10)
+        self.set("mhp", self.get("hp"))
 
     def body_build(self) -> int:
         build = self.str + self.con
@@ -88,9 +112,16 @@ class Investigator(Character):
             return "教育成长检定D100=%d, 小于%d, 无增长。" % (edu_check, self.edu)
         if self.edu > 99:
             self.edu = 99
-            return "教育成长检定D100=%d, 成长1D10=%d, 成长到了最高值99！" % (edu_check, edu_en)
+            return "教育成长检定D100=%d, 成长1D10=%d, 成长到了最高值99！" % (
+                edu_check,
+                edu_en,
+            )
         else:
-            return "教育成长检定D100=%d, 成长1D10=%d, 成长到了%d" % (edu_check, edu_en, self.edu)
+            return "教育成长检定D100=%d, 成长1D10=%d, 成长到了%d" % (
+                edu_check,
+                edu_en,
+                self.edu,
+            )
 
     def edu_ups(self, times) -> str:
         r = ""
@@ -117,58 +148,14 @@ class Investigator(Character):
             self.dex -= sum
         return
 
-    def age_change(self, age: int = 20) -> str:
-        if self.age != 20:
-            return  # 防止多次年龄增强判定
-        if age < 15:
-            return "年龄过小, 无法担当调查员"
-        elif age >= 90:
-            return "该调查员已经作古, 他(或者她)由于年龄过大, 遭到了神祇「克苏鲁」的注视."
-        self.age = age
-        if 15 <= age < 20:
-            self.str -= 5
-            self.siz -= 5
-            self.edu -= 5
-            luc = randattr()
-            self.luc = luc if luc > self.luc else self.luc
-            return "力量、体型、教育值-5, 幸运增强判定一次"
-        elif age < 40:
-            self.edu_up()
-            return "教育增强判定一次"
-        elif age < 50:
-            self.app -= 5
-            self.sum_down(5)
-            self.edu_ups(2)
-            return "外貌-5, 力量、体型、敏捷合计降低5, 教育增强判定两次"
-        elif age < 60:
-            self.app -= 10
-            self.sum_down(10)
-            self.edu_ups(3)
-            return "外貌-10, 力量、体型、敏捷合计降低10, 教育增强判定三次"
-        elif age < 70:
-            self.app -= 15
-            self.sum_down(20)
-            self.edu_ups(4)
-            return "外貌-15, 力量、体型、敏捷合计降低20, 教育增强判定四次"
-        elif age < 80:
-            self.app -= 20
-            self.sum_down(40)
-            self.edu_ups(4)
-            return "外貌-20, 力量、体型、敏捷合计降低40, 教育增强判定四次"
-        elif age < 90:
-            self.app -= 25
-            self.sum_down(80)
-            self.edu_ups(4)
-            return "外貌-25, 力量、体型、敏捷合计降低80, 教育增强判定四次"
-
     def __repr__(self):
-        data = "姓名: %s\n" % self.name
-        data += "性别: %s 年龄: %d\n" % (self.sex, self.age)
-        data += "力量: %d 体质: %d 体型: %d\n" % (self.str, self.con, self.siz)
-        data += "敏捷: %d 外貌: %d 智力: %d\n" % (self.dex, self.app, self.int)
-        data += "意志: %d 教育: %d 幸运: %d\n" % (self.pow, self.edu, self.luc)
-        data += "DB: %s 移动速度: %d SAN: %d\n" % (self.db(), self.mov(), self.san)
-        data += "生命值: %d/%d" % (self.hp, self.lp_max())
+        data = "姓名: %s\n" % self.get("name")
+        data += "性别: %s 年龄: %d\n" % (self.get("sex"), self.get("age"))
+        # data += "力量: %d 体质: %d 体型: %d\n" % (self.str, self.con, self.siz)
+        # data += "敏捷: %d 外貌: %d 智力: %d\n" % (self.dex, self.app, self.int)
+        # data += "意志: %d 教育: %d 幸运: %d\n" % (self.pow, self.edu, self.luc)
+        # data += "DB: %s 移动速度: %d SAN: %d\n" % (self.db(), self.mov(), self.san)
+        # data += "生命值: %d/%d" % (self.hp, self.lp_max())
         return data
 
     def skills_output(self) -> str:
@@ -183,20 +170,7 @@ class Investigator(Character):
         return self.__repr__()
 
     def rollcount(self) -> tuple:
-        return (self.__count(), self.__count() + self.luc)
+        return (self.__count(), self.__count() + self.get("luc"))
 
     def __count(self):
-        return (
-            self.str
-            + self.con
-            + self.siz
-            + self.dex
-            + self.app
-            + self.int
-            + self.pow
-            + self.edu
-        )
-
-    def load(self, data: dict):
-        self.__dict__.update(data)
-        return self
+        return 0

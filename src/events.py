@@ -11,18 +11,30 @@ register = Register()
 register.regist_textevent(
     "coc.coc.roll",
     "{% for card in cards %}"
-    "天命序列[{{ card.sequence }}]:\n{{ card.card_detail }}\n共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n\n{% endif %}"
+    "天命序列[{{ card.sequence }}]:\n"
+    "{{ card.meta }}\n"
+    "{{ card.basic }}\n"
+    "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n\n{% endif %}"
     "{% endfor %}",
 )
-register.regist_textevent("coc.coc.roll.too_much_round", "天命次数[{{ round }}]超出预期.")
+register.regist_textevent(
+    "coc.coc.roll.too_much_round", "天命次数[{{ round }}]超出预期."
+)
 register.regist_textevent("coc.coc.roll.age_change", "{{ text }}")
-register.regist_textevent("coc.coc.set", "使用人物卡序列[{{ sequence }}]:\n{{ card_detail }}")
-register.regist_textevent("coc.coc.set.card_not_found", "未找到序列为[{{ sequence }}]的人物卡.")
+register.regist_textevent(
+    "coc.coc.set", "使用人物卡序列[{{ sequence }}]:\n{{ card_detail }}"
+)
+register.regist_textevent(
+    "coc.coc.set.card_not_found", "未找到序列为[{{ sequence }}]的人物卡."
+)
 register.regist_textevent(
     "coc.coc.cache",
     "已缓存的天命人物卡:\n"
     "{% for card in cards %}"
-    "天命序列[{{ card.sequence }}]:\n{{ card.card_detail }}\n共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n\n{% endif %}"
+    "天命序列[{{ card.sequence }}]:\n"
+    "{{ card.meta }}\n"
+    "{{ card.basic }}\n"
+    "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n\n{% endif %}"
     "{% endfor %}",
 )
 register.regist_textevent("coc.coc.cache.not_found", "未查询到缓存的人物卡.")
@@ -57,10 +69,13 @@ register.regist_textevent(
     "当前[{{ card_name }}]的 SAN 值为: {{ san }}.",
 )
 register.regist_textevent("coc.sc.help", "使用[.help sc]查看使用帮助.")
-register.regist_textevent("coc.sc.assign", "用户指定了应当检定的 SAN 值, 这会使得本次检定不会被记录.")
+register.regist_textevent(
+    "coc.sc.assign", "用户指定了应当检定的 SAN 值, 这会使得本次检定不会被记录."
+)
 register.regist_textevent(
     "coc.sc.error",
-    "产生了未知的错误[{{ error }}], 你可以使用`.help sc`指令查看指令使用方法." "如果你确信这是一个错误, 建议联系开发者获得更多帮助.",
+    "产生了未知的错误[{{ error }}], 你可以使用`.help sc`指令查看指令使用方法."
+    "如果你确信这是一个错误, 建议联系开发者获得更多帮助.",
 )
 
 # `.en` 指令

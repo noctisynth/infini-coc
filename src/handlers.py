@@ -6,13 +6,12 @@ from infini.register import Register
 from infini.input import Input
 from infini.output import Output
 from infini.router import Startswith
-from infini.loader import Loader
-from infini.typing import Dict, List
+from infini.typing import Dict
 
-from diceutils.utils import format_str, format_msg
+from diceutils.utils import format_str, format_msg, get_user_id
 from diceutils.dicer import Dicer
-from diceutils.cards import Cards
-from diceutils.parser import Positional, CommandParser, Commands, Command, Optional
+from diceutils.cards import CardsPool, Cards
+from diceutils.parser import Positional, CommandParser, Commands, Bool, Optional
 
 from .madness import madness_end, manias, temporary_madness, phobias
 from .investigator import Investigator
@@ -20,26 +19,12 @@ from .investigator import Investigator
 import random
 
 register = Register()
-coc_cards = Cards(mode="coc")
-coc_cache_cards = Cards(mode="coc")
-coc_attrs_dict: Dict[str, List[str]] = {
-    "名字": ["name", "名字", "名称", "姓名"],
-    "性别": ["sex", "性别"],
-    "年龄": ["age", "年龄"],
-    "力量": ["str", "力量", "攻击", "攻击力"],
-    "体质": ["con", "体质"],
-    "体型": ["siz", "体型"],
-    "敏捷": ["dex", "敏捷"],
-    "外貌": ["app", "外貌"],
-    "智力": ["int", "智力", "灵感"],
-    "意志": ["pow", "意志", "精神"],
-    "教育": ["edu", "教育"],
-    "幸运": ["luc", "幸运"],
-    "理智": ["san", "理智", "精神状态", "san值"],
-    "生命": ["hp", "生命"],
-}
+
+CardsPool.register("coc")
+
+coc_cards: Cards = CardsPool.get("coc")
+coc_cache_cards = CardsPool._cache_cards_pool.get("coc")
 coc_rolls: Dict[str, Dict[str, Dict[str, str]]] = {}
-coc_cards.init()
 
 
 def judger(
@@ -83,13 +68,13 @@ def judger(
 @register.handler(Startswith(".coc"), priority=1)
 def coc_hander(input: Input):
     args = format_msg(input.get_plain_text(), begin=".coc", zh_en=True)
-    qid = input.variables.get("user_id") or "0"
+    user_id = get_user_id(input)
 
     commands = CommandParser(
         Commands(
             [
                 Positional("roll", int, 1),
-                Command("cache", False),
+                Bool("cache", False),
                 Optional("set", int),
                 Optional("age", int, 20),
                 Optional("name", str),
@@ -110,18 +95,23 @@ def coc_hander(input: Input):
         )
 
     if commands["set"] or commands["set"] == 0:
-        if qid not in coc_rolls:
-            coc_rolls[qid] = {}
-        if commands["set"] not in coc_rolls[qid]:
+        if user_id not in coc_rolls:
+            coc_rolls[user_id] = {}
+        if commands["set"] not in coc_rolls[user_id]:
             yield Output(
                 "text",
                 "coc.coc.set.card_not_found",
                 block=True,
                 variables={"sequence": commands["set"]},
             )
-        coc_cards.update(input, coc_rolls[qid][commands["set"]], save=True)
-        inv = Investigator().load(coc_rolls[qid][commands["set"]])
-        coc_rolls[qid] = {}
+
+        coc_cards.update(
+            get_user_id(input), attributes=coc_rolls[user_id][commands["set"]]
+        )
+
+        inv = Investigator()
+        inv.loads(coc_rolls[user_id][commands["set"]])
+        coc_rolls[user_id] = {}
         yield Output(
             "text",
             "coc.coc.set",
@@ -133,7 +123,7 @@ def coc_hander(input: Input):
         )
 
     if commands["cache"]:
-        if qid not in coc_rolls.keys():
+        if user_id not in coc_rolls.keys():
             yield Output(
                 "text",
                 "coc.coc.cache.not_found",
@@ -141,8 +131,9 @@ def coc_hander(input: Input):
             )
 
         cards = []
-        for i, item in coc_rolls[qid].items():
-            inv = Investigator().load(item)
+        for i, item in coc_rolls[user_id].items():
+            inv = Investigator()
+            inv.loads(item)
             count = inv.rollcount()
             cards.append(
                 {
@@ -158,40 +149,41 @@ def coc_hander(input: Input):
     age = commands["age"]
     name = commands["name"]
 
-    if not (15 <= age and age < 90):
-        yield Output(
-            "text",
-            "coc.coc.roll.age_change",
-            variables={"text": Investigator().age_change(age)},
-        )
+    # if not (15 <= age and age < 90):
+    #     yield Output(
+    #         "text",
+    #         "coc.coc.roll.age_change",
+    #         variables={"text": Investigator().age_change(age)},
+    #     )
 
-    if qid in coc_rolls.keys():
-        rolled = len(coc_rolls[qid].keys())
+    if user_id in coc_rolls.keys():
+        rolled = len(coc_rolls[user_id].keys())
     else:
-        coc_rolls[qid] = {}
+        coc_rolls[user_id] = {}
         rolled = 0
 
     cards = []
     for i in range(round):
         inv = Investigator()
-        inv.age_change(age)
-        inv.sex = commands["sex"]
+        # inv.age_change(age)
+        inv.set("sex", commands["sex"])
 
         if name:
-            inv.name = name
+            inv.set("name", name)
 
-        coc_rolls[qid][rolled + i] = inv.__dict__
+        coc_rolls[user_id][rolled + i] = inv.dumps()
         count = inv.rollcount()
 
         cards.append(
             {
                 "sequence": rolled + i,
-                "card_detail": inv.output(),
+                "meta": inv.display_group("meta"),
+                "basic": inv.display_group("basic"),
                 "count": count,
             }
         )
 
-    (coc_cache_cards.update(input, inv.__dict__, save=False) if round == 1 else ...)
+    (coc_cache_cards.update(user_id, attributes=inv.dumps()) if round == 1 else ...)
 
     yield Output("text", "coc.coc.roll", block=True, variables={"cards": cards})
 
@@ -199,6 +191,7 @@ def coc_hander(input: Input):
 @register.handler(Startswith(".ra"), priority=1)
 def ra_hander(input: Input):
     args = format_msg(input.get_plain_text(), begin=".ra")
+    user_id = get_user_id(input)
 
     if len(args) == 0:
         yield Output("text", "coc.ra.help", block=True)
@@ -213,33 +206,16 @@ def ra_hander(input: Input):
 
     skill_name = args[0]
 
-    card_data = coc_cards.get(input)
-    if not card_data:
+    if not (card_data := coc_cards.get(user_id)):
         if len(args) == 1:
             yield judger(input, Dicer(), 0, name=skill_name)
 
         yield judger(input, Dicer(), int(args[1]), name=skill_name)
 
-    inv = Investigator().load(card_data)
+    inv = Investigator()
+    inv.loads(card_data)
 
-    is_base = False
-    exp = None
-    for attr_name, alias in coc_attrs_dict.items():
-        if args[0] in alias:
-            exp = int(getattr(inv, alias[0]))
-            is_base = True
-            skill_name = attr_name
-            break
-
-    if not is_base:
-        for skill in inv.skills:
-            if args[0] == skill:
-                exp = inv.skills[skill]
-                break
-            else:
-                exp = False
-
-    if not exp:
+    if not (exp := inv.get(skill_name)):
         if len(args) == 1:
             exp = 0
         elif not args[1].isdigit():
@@ -247,22 +223,17 @@ def ra_hander(input: Input):
         else:
             exp = int(args[1])
 
-        yield judger(input, Dicer(), exp, name=args[0])
+        yield judger(input, Dicer(), exp, name=skill_name)
     elif exp and len(args) > 1:
         if not args[1].isdigit():
-            return
+            yield Output("text", "coc.ra.error.invalid_value", block=True)
 
         yield Output(
-            "text", "coc.ra.record_exsists", variables={"name": args[0], "exp": exp}
+            "text", "coc.ra.record_exsists", variables={"name": skill_name, "exp": exp}
         )
         yield judger(input, Dicer(), int(args[1]), name=args[0])
 
-    # time = 1
-
-    # for _ in range(time - 1):
-    #     r += judger(input, Dicer(), exp, name=args[0])
-
-    return judger(input, Dicer(), exp, name=skill_name)
+    yield judger(input, Dicer(), exp, name=skill_name)
 
 
 @register.handler(Startswith(".sc"), priority=2)
@@ -311,11 +282,12 @@ def sc_handler(input: Input):
             card["san"] = 0
 
         if using_card:
-            coc_cards.update(input, card)
+            coc_cards.update(get_user_id(input), attributes=card)
 
         yield Output(
             "text",
             "coc.sc",
+            block=True,
             variables={
                 "card_name": card["name"],
                 "san_before": san_before,
@@ -327,7 +299,9 @@ def sc_handler(input: Input):
             },
         )
     except Exception as error:
-        yield Output("text", "coc.sc.error", variables={"error": str(error)})
+        yield Output(
+            "text", "coc.sc.error", block=True, variables={"error": str(error)}
+        )
 
 
 @register.handler(Startswith(".ti"), priority=2)
