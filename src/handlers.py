@@ -12,9 +12,10 @@ from diceutils.utils import format_str, format_msg, get_user_id
 from diceutils.dicer import Dicer
 from diceutils.cards import CardsPool, Cards
 from diceutils.parser import Positional, CommandParser, Commands, Bool, Optional
+from diceutils.charactors import manager
 
 from .madness import madness_end, manias, temporary_madness, phobias
-from .investigator import Investigator
+from .utils import rollcount, db, initialized
 
 import random
 
@@ -23,7 +24,7 @@ register = Register()
 CardsPool.register("coc")
 
 coc_cards: Cards = CardsPool.get("coc")
-coc_cache_cards = CardsPool._cache_cards_pool.get("coc")
+coc_cache_cards: Cards = CardsPool._cache_cards_pool.get("coc")
 coc_rolls: Dict[str, Dict[str, Dict[str, str]]] = {}
 
 
@@ -53,7 +54,7 @@ def judger(
 
     return input.output(
         "text",
-        "dg.docimasy.skill",
+        "coc.ra",
         block=True,
         variables={
             "name": name,
@@ -76,9 +77,9 @@ def coc_hander(input: Input):
                 Positional("roll", int, 1),
                 Bool("cache", False),
                 Optional("set", int),
-                Optional("age", int, 20),
+                Optional("age", int),
                 Optional("name", str),
-                Optional("sex", str, "女"),
+                Optional("sex", str),
             ]
         ),
         args=args,
@@ -109,8 +110,8 @@ def coc_hander(input: Input):
             get_user_id(input), attributes=coc_rolls[user_id][commands["set"]]
         )
 
-        inv = Investigator()
-        inv.loads(coc_rolls[user_id][commands["set"]])
+        charactor = manager.build_card("coc")
+        charactor.loads(coc_rolls[user_id][commands["set"]])
         coc_rolls[user_id] = {}
         yield input.output(
             "text",
@@ -119,8 +120,8 @@ def coc_hander(input: Input):
             variables={
                 "sequence": commands["set"],
                 "card": {
-                    "meta": inv.display_group("meta"),
-                    "basic": inv.display_group("basic")
+                    "meta": charactor.display_group("meta"),
+                    "basic": charactor.display_group("basic"),
                 },
             },
         )
@@ -135,30 +136,26 @@ def coc_hander(input: Input):
 
         cards = []
         for i, item in coc_rolls[user_id].items():
-            inv = Investigator()
-            inv.loads(item)
-            count = inv.rollcount()
+            charactor = manager.build_card("coc")
+            charactor.loads(item)
+            count = rollcount(charactor)
             cards.append(
                 {
                     "sequence": i,
-                    "meta": inv.display_group("meta"),
-                    "basic": inv.display_group("basic"),
+                    "meta": charactor.display_group("meta"),
+                    "basic": charactor.display_group("basic"),
                     "count": count,
                 }
             )
             i += 1
 
-        yield input.output("text", "coc.coc.cache", block=True, variables={"cards": cards})
+        yield input.output(
+            "text", "coc.coc.cache", block=True, variables={"cards": cards}
+        )
 
     age = commands["age"]
     name = commands["name"]
-
-    # if not (15 <= age and age < 90):
-    #     yield input.output(
-    #         "text",
-    #         "coc.coc.roll.age_change",
-    #         variables={"text": Investigator().age_change(age)},
-    #     )
+    sex = commands["sex"]
 
     if user_id in coc_rolls.keys():
         rolled = len(coc_rolls[user_id].keys())
@@ -168,26 +165,31 @@ def coc_hander(input: Input):
 
     cards = []
     for i in range(round):
-        inv = Investigator()
-        # inv.age_change(age)
-        inv.set("sex", commands["sex"])
-
+        charactor = initialized(manager.build_card("coc"))
+        if age:
+            charactor.set("age", age)
+        if sex:
+            charactor.set("sex", sex)
         if name:
-            inv.set("name", name)
+            charactor.set("name", name)
 
-        coc_rolls[user_id][rolled + i] = inv.dumps()
-        count = inv.rollcount()
+        coc_rolls[user_id][rolled + i] = charactor.dumps()
+        count = rollcount(charactor)
 
         cards.append(
             {
                 "sequence": rolled + i,
-                "meta": inv.display_group("meta"),
-                "basic": inv.display_group("basic"),
+                "meta": charactor.display_group("meta"),
+                "basic": charactor.display_group("basic"),
                 "count": count,
             }
         )
 
-    (coc_cache_cards.update(user_id, attributes=inv.dumps()) if round == 1 else ...)
+    (
+        coc_cache_cards.update(user_id, attributes=charactor.dumps())
+        if round == 1
+        else ...
+    )
 
     yield input.output("text", "coc.coc.roll", block=True, variables={"cards": cards})
 
@@ -216,10 +218,10 @@ def ra_hander(input: Input):
 
         yield judger(input, Dicer(), int(args[1]), name=skill_name)
 
-    inv = Investigator()
-    inv.loads(card_data)
+    charactor = manager.build_card("coc")
+    charactor.loads(card_data)
 
-    if not (exp := inv.get(skill_name)):
+    if not (exp := charactor.get(skill_name)):
         if len(args) == 1:
             exp = 0
         elif not args[1].isdigit():
@@ -238,6 +240,90 @@ def ra_hander(input: Input):
         yield judger(input, Dicer(), int(args[1]), name=args[0])
 
     yield judger(input, Dicer(), exp, name=skill_name)
+
+
+@register.handler(Command("at"))
+def at(input: Input):
+    args = format_msg(input.get_plain_text(), begin=".at", zh_en=False)
+
+    first = args[0] if args else ""
+    second = args[1] if len(args) > 1 else None
+
+    if not Dicer.check(first):
+        roll_string = second or "1d6"
+        reason = first
+    else:
+        roll_string = first
+        reason = second
+
+    user_id = get_user_id(input)
+    charactor = manager.build_card("coc")
+    charactor.loads((coc_cards.get(user_id) or {}))
+
+    dice = Dicer(roll_string + db(charactor)).roll()
+
+    yield input.output(
+        "text",
+        "coc.at",
+        block=True,
+        variables={
+            "desc": dice.description(),
+            "damage": dice.outcome,
+            "reason": reason,
+        },
+    )
+
+
+@register.handler(Command("dam"), priority=0)
+def dam(input: Input):
+    args = format_msg(input.get_plain_text(), begin=".dam", zh_en=False)
+
+    user_id = get_user_id(input)
+
+    first = args[0] if args else ""
+    second = args[1] if len(args) > 1 else None
+
+    if not Dicer.check(first):
+        roll_string = second or "1d6"
+        reason = first
+    else:
+        roll_string = first
+        reason = second
+
+    charactor = manager.build_card("coc")
+    charactor.loads(coc_cards.get(user_id) or {})
+    max_hp = charactor.get("mhp") or 0
+
+    dice = Dicer(roll_string).roll()
+
+    hp = charactor.get("hp") or 0
+    if hp < 0:
+        hp = 0
+    hp -= dice.outcome
+
+    if dice.outcome < max_hp // 2:
+        state = "轻伤"
+    elif dice.outcome >= max_hp // 2:
+        if hp > 0:
+            state = "重伤"
+        else:
+            state = "濒死"
+    else:
+        state = "健康"
+
+    charactor.set("hp", hp)
+    coc_cards.update(user_id, attributes=charactor.dumps())
+    return input.output(
+        "text",
+        "coc.dam",
+        block=True,
+        variables={
+            "desc": dice.description(),
+            "damage": dice.outcome,
+            "reason": reason,
+            "state": state,
+        },
+    )
 
 
 @register.handler(Command("sc"), priority=2)
