@@ -23,8 +23,8 @@ def test_install(ipk):
 def test_main(ipk):
     commands = [
         ".r20#d6",
-        "ti",
-        "li",
+        ".ti",
+        ".li",
         ".sc 1d10/1d10",
         ".coc cache",
         ".coc 200",
@@ -34,6 +34,11 @@ def test_main(ipk):
         ".coc set 1",
         ".ra",
         ".ra 毁灭人类",
+        ".at",
+        ".at 2d6",
+        ".at 2d6 打爆地球",
+        ".at 打爆地球 2d6",
+        ".dam 6d6",
     ]
 
     with Loader() as loader:
@@ -47,6 +52,7 @@ def test_main(ipk):
             print(output)
         print("================ end ================")
         print()
+    raise
 
 
 if __name__ == "__main__":
