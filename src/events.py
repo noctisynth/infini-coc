@@ -11,10 +11,9 @@ register = Register()
 register.regist_textevent(
     "coc.coc.roll",
     "{% for card in cards %}"
-    "天命序列[{{ card.sequence }}]:\n"
-    "{{ card.meta }}\n"
-    "{{ card.basic }}\n"
-    "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n\n{% endif %}"
+    "{% if loop.first %}{{ card.meta }}\n{% endif %}"
+    "序列[{{ card.sequence }}]: {{ card.basic }} "
+    "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n{% endif %}"
     "{% endfor %}",
 )
 register.regist_textevent(
@@ -22,7 +21,10 @@ register.regist_textevent(
 )
 register.regist_textevent("coc.coc.roll.age_change", "{{ text }}")
 register.regist_textevent(
-    "coc.coc.set", "使用人物卡序列[{{ sequence }}]:\n{{ card_detail }}"
+    "coc.coc.set",
+    "使用人物卡序列[{{ sequence }}]:\n"
+    "{{ card.meta }}\n"
+    "{{ card.basic }}"
 )
 register.regist_textevent(
     "coc.coc.set.card_not_found", "未找到序列为[{{ sequence }}]的人物卡."
@@ -31,10 +33,9 @@ register.regist_textevent(
     "coc.coc.cache",
     "已缓存的天命人物卡:\n"
     "{% for card in cards %}"
-    "天命序列[{{ card.sequence }}]:\n"
-    "{{ card.meta }}\n"
-    "{{ card.basic }}\n"
-    "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n\n{% endif %}"
+    "{% if loop.first %}{{ card.meta }}\n{% endif %}"
+    "序列[{{ card.sequence }}]: {{ card.basic }} "
+    "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n{% endif %}"
     "{% endfor %}",
 )
 register.regist_textevent("coc.coc.cache.not_found", "未查询到缓存的人物卡.")
@@ -55,7 +56,7 @@ register.regist_textevent(
 )
 register.regist_textevent(
     "dg.docimasy.skill",
-    '[{{ username if username else "用户" }}]'
+    '[{{ card_name }}]'
     "{% if reason %}由于[{{ reason }}]{% endif %}"
     "进行技能[{{ name }}:{{ value }}]检定: {{ desc }}, 检定[{{ judge }}].",
 )
@@ -63,7 +64,7 @@ register.regist_textevent(
 # `.sc` 指令
 register.regist_textevent(
     "coc.sc",
-    '[{{ username if username else "用户" }}]'
+    '[{{ card_name }}]'
     "调查员[{{ card_name }}]进行[精神状态: {{ san_before }}]检定: 1D100={{ docimasy_number }}, 检定{{ docimasy_status }}. "
     "[{{ card_name }}]理智降低了 {{ down }} 点, {{ docimasy_result }}. "
     "当前[{{ card_name }}]的 SAN 值为: {{ san }}.",
@@ -87,7 +88,7 @@ register.regist_textevent(
 # `.ti` 指令
 register.regist_textevent(
     "coc.ti",
-    '[{{ username if username else "用户" }}]临时疯狂检定1D10={{ i }}\n'
+    '[{{ card_name }}]临时疯狂检定1D10={{ i }}\n'
     "{{ temporary_madness }}"
     "{% if i == 9 %}"
     "\n恐惧症状为: \n{{ phobias }}"
@@ -100,7 +101,7 @@ register.regist_textevent(
 
 register.regist_textevent(
     "coc.li",
-    '[{{ username if username else "用户" }}]总结疯狂判定1D10={{ i }}\n'
+    '[{{ card_name }}]总结疯狂判定1D10={{ i }}\n'
     "{{ madness }}"
     "{% if i in [2, 3, 6, 9, 10] %}\n调查员将在1D10={{ sustain }}小时后醒来.{% endif %}"
     "{% if i == 9 %}"

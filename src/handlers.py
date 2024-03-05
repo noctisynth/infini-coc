@@ -5,7 +5,7 @@
 from infini.register import Register
 from infini.input import Input
 from infini.output import Output
-from infini.router import Startswith
+from infini.router import Command
 from infini.typing import Dict
 
 from diceutils.utils import format_str, format_msg, get_user_id
@@ -28,7 +28,7 @@ coc_rolls: Dict[str, Dict[str, Dict[str, str]]] = {}
 
 
 def judger(
-    _: Input, dice: Dicer, exp: int | None, name: str = None, reason: str = None
+    input: Input, dice: Dicer, exp: int | None, name: str = None, reason: str = None
 ) -> Output:
     """类 COC 模式技能检定结果"""
     result = dice.roll().calc()
@@ -51,7 +51,7 @@ def judger(
     else:
         judge = ""
 
-    return Output(
+    return input.output(
         "text",
         "dg.docimasy.skill",
         block=True,
@@ -65,7 +65,7 @@ def judger(
     )
 
 
-@register.handler(Startswith(".coc"), priority=1)
+@register.handler(Command("coc"), priority=1)
 def coc_hander(input: Input):
     args = format_msg(input.get_plain_text(), begin=".coc", zh_en=True)
     user_id = get_user_id(input)
@@ -87,7 +87,7 @@ def coc_hander(input: Input):
 
     round = commands["roll"]
     if round > 9:
-        yield Output(
+        yield input.output(
             "text",
             "coc.coc.roll.too_much_round",
             block=True,
@@ -98,7 +98,7 @@ def coc_hander(input: Input):
         if user_id not in coc_rolls:
             coc_rolls[user_id] = {}
         if commands["set"] not in coc_rolls[user_id]:
-            yield Output(
+            yield input.output(
                 "text",
                 "coc.coc.set.card_not_found",
                 block=True,
@@ -112,19 +112,22 @@ def coc_hander(input: Input):
         inv = Investigator()
         inv.loads(coc_rolls[user_id][commands["set"]])
         coc_rolls[user_id] = {}
-        yield Output(
+        yield input.output(
             "text",
             "coc.coc.set",
             block=True,
             variables={
                 "sequence": commands["set"],
-                "card_detail": inv.output(),
+                "card": {
+                    "meta": inv.display_group("meta"),
+                    "basic": inv.display_group("basic")
+                },
             },
         )
 
     if commands["cache"]:
         if user_id not in coc_rolls.keys():
-            yield Output(
+            yield input.output(
                 "text",
                 "coc.coc.cache.not_found",
                 block=True,
@@ -138,19 +141,20 @@ def coc_hander(input: Input):
             cards.append(
                 {
                     "sequence": i,
-                    "card_detail": inv.output(),
+                    "meta": inv.display_group("meta"),
+                    "basic": inv.display_group("basic"),
                     "count": count,
                 }
             )
             i += 1
 
-        yield Output("text", "coc.coc.cache", block=True, variables={"cards": cards})
+        yield input.output("text", "coc.coc.cache", block=True, variables={"cards": cards})
 
     age = commands["age"]
     name = commands["name"]
 
     # if not (15 <= age and age < 90):
-    #     yield Output(
+    #     yield input.output(
     #         "text",
     #         "coc.coc.roll.age_change",
     #         variables={"text": Investigator().age_change(age)},
@@ -185,19 +189,19 @@ def coc_hander(input: Input):
 
     (coc_cache_cards.update(user_id, attributes=inv.dumps()) if round == 1 else ...)
 
-    yield Output("text", "coc.coc.roll", block=True, variables={"cards": cards})
+    yield input.output("text", "coc.coc.roll", block=True, variables={"cards": cards})
 
 
-@register.handler(Startswith(".ra"), priority=1)
+@register.handler(Command("ra", alias=["rc"]), priority=1)
 def ra_hander(input: Input):
-    args = format_msg(input.get_plain_text(), begin=".ra")
+    args = format_msg(input.get_plain_text(), begin=(".ra", ".rc"))
     user_id = get_user_id(input)
 
     if len(args) == 0:
-        yield Output("text", "coc.ra.help", block=True)
+        yield input.output("text", "coc.ra.help", block=True)
 
     if len(args) > 4:
-        yield Output(
+        yield input.output(
             "text",
             "coc.ra.error.to_much_args",
             block=True,
@@ -219,16 +223,16 @@ def ra_hander(input: Input):
         if len(args) == 1:
             exp = 0
         elif not args[1].isdigit():
-            yield Output("text", "coc.ra.error.invalid_value", block=True)
+            yield input.output("text", "coc.ra.error.invalid_value", block=True)
         else:
             exp = int(args[1])
 
         yield judger(input, Dicer(), exp, name=skill_name)
     elif exp and len(args) > 1:
         if not args[1].isdigit():
-            yield Output("text", "coc.ra.error.invalid_value", block=True)
+            yield input.output("text", "coc.ra.error.invalid_value", block=True)
 
-        yield Output(
+        yield input.output(
             "text", "coc.ra.record_exsists", variables={"name": skill_name, "exp": exp}
         )
         yield judger(input, Dicer(), int(args[1]), name=args[0])
@@ -236,11 +240,11 @@ def ra_hander(input: Input):
     yield judger(input, Dicer(), exp, name=skill_name)
 
 
-@register.handler(Startswith(".sc"), priority=2)
+@register.handler(Command("sc"), priority=2)
 def sc_handler(input: Input):
     text = format_str(input.get_plain_text(), begin=".sc")
     if not text:
-        yield Output("text", "coc.sc.help", block=True)
+        yield input.output("text", "coc.sc.help", block=True)
 
     try:
         args = text.split(" ")
@@ -252,7 +256,7 @@ def sc_handler(input: Input):
 
         if len(args) > 1:
             card = {"san": int(args[1]), "name": "未指定"}
-            yield Output("text", "coc.sc.assign")
+            yield input.output("text", "coc.sc.assign")
             using_card = False
         else:
             if not (card := coc_cards.get(input)):
@@ -284,7 +288,7 @@ def sc_handler(input: Input):
         if using_card:
             coc_cards.update(get_user_id(input), attributes=card)
 
-        yield Output(
+        yield input.output(
             "text",
             "coc.sc",
             block=True,
@@ -299,17 +303,17 @@ def sc_handler(input: Input):
             },
         )
     except Exception as error:
-        yield Output(
+        yield input.output(
             "text", "coc.sc.error", block=True, variables={"error": str(error)}
         )
 
 
-@register.handler(Startswith(".ti"), priority=2)
-def ti_handler(_: Input):
+@register.handler(Command("ti"), priority=2)
+def ti_handler(input: Input):
     i = random.randint(1, 10)
     j = random.randint(1, 100)
 
-    return Output(
+    return input.output(
         "text",
         "coc.ti",
         block=True,
@@ -323,12 +327,12 @@ def ti_handler(_: Input):
     )
 
 
-@register.handler(Startswith(".li"), priority=2)
-def li_handler(_: Input):
+@register.handler(Command("li"), priority=2)
+def li_handler(input: Input):
     i = random.randint(1, 10)
     j = random.randint(1, 100)
 
-    return Output(
+    return input.output(
         "text",
         "coc.li",
         block=True,

@@ -44,6 +44,7 @@ attributes = [
             Attribute("edu", int, ["教育"]),
             Attribute("luc", int, ["幸运", "命运"]),
             Attribute("san", int, ["理智", "精神状态", "san值"]),
+            Attribute("mov", int, ["速度", "移动速度"]),
             Attribute("hp", int, ["生命"]),
             Attribute("mhp", int, ["生命上限", "最大生命"]),
         ],
@@ -86,17 +87,18 @@ class Investigator(Character):
 
     def mov(self) -> int:
         r = 8
-        if self.age >= 80:
+        age = self.get("age")
+        if age >= 80:
             r -= 5
-        elif self.age >= 70:
+        elif age >= 70:
             r -= 4
-        elif self.age >= 60:
+        elif age >= 60:
             r -= 3
-        elif self.age >= 50:
+        elif age >= 50:
             r -= 2
-        elif self.age >= 40:
+        elif age >= 40:
             r -= 1
-        if self.str < self.siz and self.dex < self.siz:
+        if self.get("str") < self.get("siz") and self.get("dex") < self.get("siz"):
             return r - 1
         elif self.str > self.siz and self.dex > self.siz:
             return r + 1
@@ -147,27 +149,6 @@ class Investigator(Character):
             sum -= con_lost
             self.dex -= sum
         return
-
-    def __repr__(self):
-        data = "姓名: %s\n" % self.get("name")
-        data += "性别: %s 年龄: %d\n" % (self.get("sex"), self.get("age"))
-        # data += "力量: %d 体质: %d 体型: %d\n" % (self.str, self.con, self.siz)
-        # data += "敏捷: %d 外貌: %d 智力: %d\n" % (self.dex, self.app, self.int)
-        # data += "意志: %d 教育: %d 幸运: %d\n" % (self.pow, self.edu, self.luc)
-        # data += "DB: %s 移动速度: %d SAN: %d\n" % (self.db(), self.mov(), self.san)
-        # data += "生命值: %d/%d" % (self.hp, self.lp_max())
-        return data
-
-    def skills_output(self) -> str:
-        if not self.skills:
-            return "%s 当前无任何技能数据。" % self.name
-        r = "%s技能数据: " % self.name
-        for k, v in self.skills.items():
-            r += "\n%s: %d" % (k, v)
-        return r
-
-    def output(self) -> str:
-        return self.__repr__()
 
     def rollcount(self) -> tuple:
         return (self.__count(), self.__count() + self.get("luc"))
