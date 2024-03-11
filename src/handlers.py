@@ -6,7 +6,6 @@ from infini.register import Register
 from infini.input import Input
 from infini.output import Output
 from infini.router import Command
-from infini.typing import Dict
 
 from diceutils.utils import format_str, format_msg, get_user_id
 from diceutils.dicer import Dicer
@@ -25,7 +24,6 @@ CardsPool.register("coc")
 
 coc_cards: Cards = CardsPool.get("coc")
 coc_cache_cards: Cards = CardsPool._cache_cards_pool.get("coc")
-coc_rolls: Dict[str, Dict[str, Dict[str, str]]] = {}
 
 
 def judger(
@@ -96,9 +94,7 @@ def coc_hander(input: Input):
         )
 
     if commands["set"] or commands["set"] == 0:
-        if user_id not in coc_rolls:
-            coc_rolls[user_id] = {}
-        if commands["set"] not in coc_rolls[user_id]:
+        if (cache_card := coc_cache_cards.get(user_id, commands["set"])) is None:
             yield input.output(
                 "text",
                 "coc.coc.set.card_not_found",
@@ -106,13 +102,12 @@ def coc_hander(input: Input):
                 variables={"sequence": commands["set"]},
             )
 
-        coc_cards.update(
-            get_user_id(input), attributes=coc_rolls[user_id][commands["set"]]
-        )
+        coc_cards.update(user_id, attributes=cache_card)
 
         charactor = manager.build_card("coc")
-        charactor.loads(coc_rolls[user_id][commands["set"]])
-        coc_rolls[user_id] = {}
+        charactor.loads(cache_card)
+        coc_cache_cards.clear(user_id)
+
         yield input.output(
             "text",
             "coc.coc.set",
@@ -127,7 +122,7 @@ def coc_hander(input: Input):
         )
 
     if commands["cache"]:
-        if user_id not in coc_rolls.keys():
+        if (cache_cards := coc_cache_cards.getall(user_id)) is None:
             yield input.output(
                 "text",
                 "coc.coc.cache.not_found",
@@ -135,7 +130,7 @@ def coc_hander(input: Input):
             )
 
         cards = []
-        for i, item in coc_rolls[user_id].items():
+        for i, item in enumerate(cache_cards):
             charactor = manager.build_card("coc")
             charactor.loads(item)
             count = rollcount(charactor)
@@ -157,11 +152,7 @@ def coc_hander(input: Input):
     name = commands["name"]
     sex = commands["sex"]
 
-    if user_id in coc_rolls.keys():
-        rolled = len(coc_rolls[user_id].keys())
-    else:
-        coc_rolls[user_id] = {}
-        rolled = 0
+    rolled = coc_cache_cards.count(user_id)
 
     cards = []
     for i in range(round):
@@ -173,7 +164,7 @@ def coc_hander(input: Input):
         if name:
             charactor.set("name", name)
 
-        coc_rolls[user_id][rolled + i] = charactor.dumps()
+        coc_cache_cards.update(user_id, rolled + i, attributes=charactor.dumps())
         count = rollcount(charactor)
 
         cards.append(
@@ -184,12 +175,6 @@ def coc_hander(input: Input):
                 "count": count,
             }
         )
-
-    (
-        coc_cache_cards.update(user_id, attributes=charactor.dumps())
-        if round == 1
-        else ...
-    )
 
     yield input.output("text", "coc.coc.roll", block=True, variables={"cards": cards})
 
