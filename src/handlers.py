@@ -299,11 +299,14 @@ def dam(input: Input):
     hp = charactor.get("hp") or 0
     if hp < 0:
         hp = 0
-    hp -= dice.outcome
+    hp = max(hp - dice.outcome, 0)
 
-    if dice.outcome < max_hp // 2:
-        state = "轻伤"
-    elif dice.outcome >= max_hp // 2:
+    if dice.outcome < max_hp / 2:
+        if hp > 0:
+            state = "轻伤"
+        else:
+            state = "昏迷"
+    elif dice.outcome >= max_hp / 2:
         if hp > 0:
             state = "重伤"
         else:
@@ -332,10 +335,11 @@ def sc_handler(input: Input):
     if not text:
         yield input.output("text", "coc.sc.help", block=True)
 
+    using_card: bool
+    user_id = get_user_id(input)
+
     try:
-        args = text.split(" ")
-        args = list(filter(None, args))
-        using_card = False
+        args = list(filter(None, text.split(" ")))
         s_and_f = args[0].split("/")
         success = Dicer(s_and_f[0]).roll().outcome
         failure = Dicer(s_and_f[1]).roll().outcome
@@ -345,34 +349,35 @@ def sc_handler(input: Input):
             yield input.output("text", "coc.sc.assign")
             using_card = False
         else:
-            if not (card := coc_cards.get(input)):
+            if not (card := coc_cards.get(user_id)):
                 card = {"san": 0, "name": "未指定"}
             using_card = True
 
-        docimasy_number = Dicer().roll().calc()
-        san_before = card["san"]
+        charactor = manager.build_card("coc")
+        charactor.loads(card)
 
-        if docimasy_number <= card["san"]:
+        docimasy_number = Dicer().roll().calc()
+        san_before = charactor.get("san")
+
+        if docimasy_number <= san_before:
             down = success
             docimasy_status = "成功"
         else:
             down = failure
             docimasy_status = "失败"
-        if down >= card["san"]:
+        if down >= san_before:
             docimasy_result = "陷入了永久性疯狂"
-        elif down >= (card["san"] // 5):
+        elif down >= (san_before // 5):
             docimasy_result = "陷入了不定性疯狂"
         elif down >= 5:
             docimasy_result = "陷入了临时性疯狂"
         else:
             docimasy_result = "未受到严重影响"
 
-        card["san"] -= down
-        if card["san"] <= 0:
-            card["san"] = 0
+        charactor.set("san", max(san_before - down, 0))
 
         if using_card:
-            coc_cards.update(get_user_id(input), attributes=card)
+            coc_cards.update(user_id, attributes=charactor.dumps())
 
         yield input.output(
             "text",
