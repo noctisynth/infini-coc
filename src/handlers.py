@@ -64,7 +64,13 @@ def judger(
     )
 
 
-@register.handler(Command("coc"), priority=1)
+@register.handler(
+    Command("coc"),
+    priority=1,
+    usage="coc [天命次数] [指令] [选项]",
+    description="克苏鲁神话人物卡作成",
+    epilog="使用`.help coc`获取帮助信息.",
+)
 def coc_hander(input: Input):
     args = format_msg(input.get_plain_text(), begin=".coc", zh_en=True)
     user_id = get_user_id(input)
@@ -180,7 +186,7 @@ def coc_hander(input: Input):
 
 
 @register.handler(Command("ra", alias=["rc"]), priority=1)
-def ra_hander(input: Input):
+def ra_hander(input: Input[str]):
     args = format_msg(input.get_plain_text(), begin=(".ra", ".rc"))
     user_id = get_user_id(input)
 

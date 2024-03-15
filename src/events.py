@@ -15,6 +15,7 @@ register.register_textevent(
     "序列[{{ card.sequence }}]: {{ card.basic }} "
     "共计: {{ card.count[0] }}/{{ card.count[1] }}{% if not loop.last %}\n{% endif %}"
     "{% endfor %}",
+    description="天命结果返回",
 )
 register.register_textevent(
     "coc.coc.roll.too_much_round", "天命次数[{{ round }}]超出预期."
