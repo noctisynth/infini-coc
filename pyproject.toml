@@ -1,6 +1,6 @@
 [project]
 name = "coc"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 description = "克苏鲁神话规则包"
 authors = [
     {name = "苏向夜",email = "fu050409@163.com"},
