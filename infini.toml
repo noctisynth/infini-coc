@@ -1,8 +1,12 @@
-[infini]
+[project]
 name = "coc"
-version = "0.1.0-rc.1"
-description = "Infini COC 规则包"
-license = "MIT"
+version = "0.1.0"
+description = "克苏鲁神话规则包"
+authors = [
+    {name = "苏向夜",email = "fu050409@163.com"},
+]
+license = "AGPLv3"
+readme = "README.md"
 
 [requirements]
 
