@@ -185,7 +185,13 @@ def coc_hander(input: Input):
     yield input.output("text", "coc.coc.roll", block=True, variables={"cards": cards})
 
 
-@register.handler(Command("ra", alias=["rc"]), priority=1)
+@register.handler(
+    Command("ra", alias=["rc"]), 
+    priority=1,
+    usage="ra/rc [技能名称] [技能属性点]",
+    description="roll check，用于技能检定",
+    epilog="使用`.help ra`获取帮助信息.",
+        )
 def ra_hander(input: Input[str]):
     args = format_msg(input.get_plain_text(), begin=(".ra", ".rc"))
     user_id = get_user_id(input)
@@ -233,7 +239,11 @@ def ra_hander(input: Input[str]):
     yield judger(input, Dicer(), exp, name=skill_name)
 
 
-@register.handler(Command("at"))
+@register.handler(
+    Command("at"),
+    usage="at",
+    description="攻击骰",
+    epilog="使用`.help at`获取帮助信息.", )
 def at(input: Input):
     args = format_msg(input.get_plain_text(), begin=".at", zh_en=False)
 
@@ -265,7 +275,13 @@ def at(input: Input):
     )
 
 
-@register.handler(Command("dam"), priority=0)
+@register.handler(
+    Command("dam"), 
+    priority=0,
+    usage="dam",
+    description="伤害骰，默认1d6",
+    epilog="使用`.help dam`获取帮助信息.",
+    )
 def dam(input: Input):
     args = format_msg(input.get_plain_text(), begin=".dam", zh_en=False)
 
@@ -320,7 +336,13 @@ def dam(input: Input):
     )
 
 
-@register.handler(Command("sc"), priority=2)
+@register.handler(
+    Command("sc"), 
+    priority=2,
+    usage="sc [骰点表达式]/[骰点表达式]",
+    description="san check，理智检定",
+    epilog="使用`.help sc`获取帮助信息.",
+    )
 def sc_handler(input: Input):
     text = format_str(input.get_plain_text(), begin=".sc")
     if not text:
@@ -390,7 +412,13 @@ def sc_handler(input: Input):
         )
 
 
-@register.handler(Command("ti"), priority=2)
+@register.handler(
+    Command("ti"), 
+    priority=2,
+    usage="ti",
+    description="临时疯狂，直接抽取症状与持续时间",
+    epilog="使用`.help ti`获取帮助信息.",
+    )
 def ti_handler(input: Input):
     i = random.randint(1, 10)
     j = random.randint(1, 100)
@@ -409,7 +437,13 @@ def ti_handler(input: Input):
     )
 
 
-@register.handler(Command("li"), priority=2)
+@register.handler(
+    Command("li"), 
+    priority=2,
+    usage="li",
+    description="总结疯狂",
+    epilog="使用`.help li`获取帮助信息.",
+    )
 def li_handler(input: Input):
     i = random.randint(1, 10)
     j = random.randint(1, 100)
