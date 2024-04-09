@@ -243,7 +243,7 @@ def ra_hander(input: Input[str]):
 @register.handler(
     Command("at"),
     usage=".at (.attack) [掷骰表达式] [参数]",
-    description="描述：\n角色伤害检定\n示例：\n.at 1d6     人物造成`1d6`掷骰结果的伤害\n.at 燃烧瓶      使用燃烧瓶进行伤害检定\n注意：\n- 无参数的`.at`指令会进行该模式默认的近战伤害检定.\n- 部分模式可能不支持掷骰表达式或语法.",
+    description="角色伤害检定\n示例：\n.at 1d6     人物造成`1d6`掷骰结果的伤害\n.at 燃烧瓶      使用燃烧瓶进行伤害检定\n注意：\n- 无参数的`.at`指令会进行该模式默认的近战伤害检定.\n- 部分模式可能不支持掷骰表达式或语法.",
     epilog="使用`.help at`获取帮助信息.", 
     sub_cmd="[掷骰表达式]    掷骰表达式\n[参数]      一般为检定工具伤害"
     )
@@ -282,7 +282,7 @@ def at(input: Input):
     Command("dam"), 
     priority=0,
     usage=".dam (.damage) [选项] [掷骰表达式]",
-    description="描述：\n角色承伤检定\n示例：\n.dam check\n.dam 1d6+2  人物受到`1d6+2`掷骰结果的伤害\n.dam 6  人物受到 6 点伤害\n注意：\n- 无参数的`.dam`指令会进行该模式默认的伤害承受检定.",
+    description="角色承伤检定\n示例：\n.dam check\n.dam 1d6+2  人物受到`1d6+2`掷骰结果的伤害\n.dam 6  人物受到 6 点伤害\n注意：\n- 无参数的`.dam`指令会进行该模式默认的伤害承受检定.",
     epilog="使用`.help dam`获取帮助信息.",
     sub_cmd="\n[掷骰表达式]    掷骰表达式\ncheck   检定人物当前生命状态"
     )
