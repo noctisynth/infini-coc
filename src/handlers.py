@@ -67,7 +67,7 @@ def judger(
 @register.handler(
     Command("coc"),
     priority=1,
-    usage="coc [天命次数] [指令] [选项]",
+    usage=".coc [天命次数] [指令] [选项]",
     description="克苏鲁神话人物卡作成",
     epilog="使用`.help coc`获取帮助信息.",
 )
@@ -188,8 +188,8 @@ def coc_hander(input: Input):
 @register.handler(
     Command("ra", alias=["rc"]), 
     priority=1,
-    usage="ra/rc [技能名称] [技能属性点]",
-    description="roll check，用于技能检定",
+    usage=".ra <属性/技能名> [检定值]",
+    description="描述：\n基础属性或技能检定\n指令：\n<属性/技能名>   人物卡中包含的基础属性或技能名称\n[检定值]      一般是指定属性/技能值或检定难度\n示例：\n.ra 命运    快速检定`命运`属性\n.ra 毁灭人类 99     检定技能值为99的毁灭人类技能",
     epilog="使用`.help ra`获取帮助信息.",
         )
 def ra_hander(input: Input[str]):
@@ -240,9 +240,9 @@ def ra_hander(input: Input[str]):
 
 
 @register.handler(
-    Command("at"),
-    usage="at",
-    description="攻击骰",
+    Command("at",alias=["attack"]),
+    usage=".at (.attack) [掷骰表达式] [参数]",
+    description="描述：\n角色伤害检定\n指令：\n[掷骰表达式]    掷骰表达式\n[参数]      一般为检定工具伤害\n示例：\n.at 1d6     人物造成`1d6`掷骰结果的伤害\n.at 燃烧瓶      使用燃烧瓶进行伤害检定\n注意：\n- 无参数的`.at`指令会进行该模式默认的近战伤害检定.\n- 部分模式可能不支持掷骰表达式或语法.",
     epilog="使用`.help at`获取帮助信息.", )
 def at(input: Input):
     args = format_msg(input.get_plain_text(), begin=".at", zh_en=False)
@@ -276,10 +276,10 @@ def at(input: Input):
 
 
 @register.handler(
-    Command("dam"), 
+    Command("dam",alias=["damage"]), 
     priority=0,
-    usage="dam",
-    description="伤害骰，默认1d6",
+    usage=".dam (.damage) [选项] [掷骰表达式]",
+    description="描述：\n角色承伤检定。\n指令：\n[掷骰表达式]    掷骰表达式\ncheck   检定人物当前生命状态\n示例：\n.dam check\n.dam 1d6+2  人物受到`1d6+2`掷骰结果的伤害\n.dam 6  人物受到 6 点伤害\n注意：\n- 无参数的`.dam`指令会进行该模式默认的伤害承受检定.",
     epilog="使用`.help dam`获取帮助信息.",
     )
 def dam(input: Input):
