@@ -67,7 +67,7 @@ def judger(
 @register.handler(
     Command("coc"),
     priority=1,
-    usage="coc [天命次数] [指令] [选项]",
+    usage=".coc [天命次数] [指令] [选项]",
     description="克苏鲁神话人物卡作成",
     epilog="使用`.help coc`获取帮助信息.",
 )
@@ -185,7 +185,14 @@ def coc_hander(input: Input):
     yield input.output("text", "coc.coc.roll", block=True, variables={"cards": cards})
 
 
-@register.handler(Command("ra", alias=["rc"]), priority=1)
+@register.handler(
+    Command("ra", alias=["rc"]), 
+    priority=1,
+    usage=".ra <属性/技能名> [检定值]",
+    description="基础属性或技能检定",
+    epilog="使用`.help ra`获取帮助信息.",
+    sub_cmd={"<属性/技能名>":"人物卡中包含的基础属性或技能名称","[检定值]":"一般是指定属性/技能值或检定难度"}
+        )
 def ra_hander(input: Input[str]):
     args = format_msg(input.get_plain_text(), begin=(".ra", ".rc"))
     user_id = get_user_id(input)
@@ -233,7 +240,13 @@ def ra_hander(input: Input[str]):
     yield judger(input, Dicer(), exp, name=skill_name)
 
 
-@register.handler(Command("at"))
+@register.handler(
+    Command("at"),
+    usage=".at (.attack) [掷骰表达式] [参数]",
+    description="角色伤害检定",
+    epilog="使用`.help at`获取帮助信息.", 
+    sub_cmd={"[掷骰表达式]":"掷骰表达式","[参数]":"一般为检定工具伤害"}
+    )
 def at(input: Input):
     args = format_msg(input.get_plain_text(), begin=".at", zh_en=False)
 
@@ -265,7 +278,14 @@ def at(input: Input):
     )
 
 
-@register.handler(Command("dam"), priority=0)
+@register.handler(
+    Command("dam"), 
+    priority=0,
+    usage=".dam (.damage) [选项] [掷骰表达式]",
+    description="角色承伤检定",
+    epilog="使用`.help dam`获取帮助信息.",
+    sub_cmd={"[掷骰表达式]":"掷骰表达式","check":"检定人物当前生命状态"}
+    )
 def dam(input: Input):
     args = format_msg(input.get_plain_text(), begin=".dam", zh_en=False)
 
@@ -320,7 +340,13 @@ def dam(input: Input):
     )
 
 
-@register.handler(Command("sc"), priority=2)
+@register.handler(
+    Command("sc"), 
+    priority=2,
+    usage="sc [骰点表达式]/[骰点表达式]",
+    description="san check,理智检定",
+    epilog="使用`.help sc`获取帮助信息.",
+    )
 def sc_handler(input: Input):
     text = format_str(input.get_plain_text(), begin=".sc")
     if not text:
@@ -390,7 +416,13 @@ def sc_handler(input: Input):
         )
 
 
-@register.handler(Command("ti"), priority=2)
+@register.handler(
+    Command("ti"), 
+    priority=2,
+    usage="ti",
+    description="临时疯狂,直接抽取症状与持续时间",
+    epilog="使用`.help ti`获取帮助信息.",
+    )
 def ti_handler(input: Input):
     i = random.randint(1, 10)
     j = random.randint(1, 100)
@@ -409,7 +441,13 @@ def ti_handler(input: Input):
     )
 
 
-@register.handler(Command("li"), priority=2)
+@register.handler(
+    Command("li"), 
+    priority=2,
+    usage="li",
+    description="总结疯狂,直接抽取症状",
+    epilog="使用`.help li`获取帮助信息.",
+    )
 def li_handler(input: Input):
     i = random.randint(1, 10)
     j = random.randint(1, 100)
